@@ -35,7 +35,15 @@ class DeviceDataManager(IDataMessageListener):
 	"""
 	
 	def __init__(self):
-		pass
+		self.enableMqttClient = \
+		self.configUtil.getBoolean( \
+		section = ConfigConst.CONSTRAINED_DEVICE, key = ConfigConst.ENABLE_MQTT_CLIENT_KEY)
+		
+		self.mqttClient = None
+
+		if self.enableMqttClient:
+			self.mqttClient = MqttClientConnector()
+			self.mqttClient.setDataMessageListener(self)
 		
 	def getLatestActuatorDataResponseFromCache(self, name: str = None) -> ActuatorData:
 		"""
@@ -125,10 +133,14 @@ class DeviceDataManager(IDataMessageListener):
 		pass
 			
 	def startManager(self):
-		pass
+		if self.mqttClient:
+			self.mqttClient.connectClient()
+			self.mqttClient.subscribeToTopic(ResourceNameEnum.CDA_ACTUATOR_CMD_RESOURCE, callback = None, qos = ConfigConst.DEFAULT_QOS)
 		
 	def stopManager(self):
-		pass
+		if self.mqttClient:
+			self.mqttClient.unsubscribeFromTopic(ResourceNameEnum.CDA_ACTUATOR_CMD_RESOURCE)
+			self.mqttClient.disconnectClient()
 		
 	def _handleIncomingDataAnalysis(self, msg: str):
 		"""
