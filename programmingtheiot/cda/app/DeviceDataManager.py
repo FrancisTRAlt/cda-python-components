@@ -35,15 +35,21 @@ class DeviceDataManager(IDataMessageListener):
 	"""
 	
 	def __init__(self):
-		self.enableMqttClient = \
-		self.configUtil.getBoolean( \
-		section = ConfigConst.CONSTRAINED_DEVICE, key = ConfigConst.ENABLE_MQTT_CLIENT_KEY)
+		# self.enableMqttClient = \
+		# self.configUtil.getBoolean( \
+		# section = ConfigConst.CONSTRAINED_DEVICE, key = ConfigConst.ENABLE_MQTT_CLIENT_KEY)
 		
-		self.mqttClient = None
+		# self.mqttClient = None
 
-		if self.enableMqttClient:
-			self.mqttClient = MqttClientConnector()
-			self.mqttClient.setDataMessageListener(self)
+		# if self.enableMqttClient:
+		# 	self.mqttClient = MqttClientConnector()
+		# 	self.mqttClient.setDataMessageListener(self)
+		self.enableCoapServer = \
+			self.configUtil.getBoolean( \
+				section = ConfigConst.CONSTRAINED_DEVICE, key = ConfigConst.ENABLE_COAP_SERVER_KEY)
+
+		if self.enableCoapServer:
+			self.coapServer = CoapServerAdapter(dataMsgListener = self)
 		
 	def getLatestActuatorDataResponseFromCache(self, name: str = None) -> ActuatorData:
 		"""
@@ -133,14 +139,18 @@ class DeviceDataManager(IDataMessageListener):
 		pass
 			
 	def startManager(self):
-		if self.mqttClient:
-			self.mqttClient.connectClient()
-			self.mqttClient.subscribeToTopic(ResourceNameEnum.CDA_ACTUATOR_CMD_RESOURCE, callback = None, qos = ConfigConst.DEFAULT_QOS)
-		
+		# if self.mqttClient:
+		# 	self.mqttClient.connectClient()
+		# 	self.mqttClient.subscribeToTopic(ResourceNameEnum.CDA_ACTUATOR_CMD_RESOURCE, callback = None, qos = ConfigConst.DEFAULT_QOS)
+		if self.coapServer:
+			self.coapServer.startServer()
+	
 	def stopManager(self):
-		if self.mqttClient:
-			self.mqttClient.unsubscribeFromTopic(ResourceNameEnum.CDA_ACTUATOR_CMD_RESOURCE)
-			self.mqttClient.disconnectClient()
+		# if self.mqttClient:
+		# 	self.mqttClient.unsubscribeFromTopic(ResourceNameEnum.CDA_ACTUATOR_CMD_RESOURCE)
+		# 	self.mqttClient.disconnectClient()
+		if self.coapServer:
+			self.coapServer.stopServer()
 		
 	def _handleIncomingDataAnalysis(self, msg: str):
 		"""
