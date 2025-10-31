@@ -18,6 +18,8 @@ from time import sleep
 from coapthon.server.coap import CoAP
 from coapthon.resources.resource import Resource
 
+from programmingtheiot.common.IDataMessageListener import IDataMessageListener
+
 import programmingtheiot.common.ConfigConst as ConfigConst
 
 from programmingtheiot.common.ConfigUtil import ConfigUtil
@@ -28,7 +30,7 @@ from programmingtheiot.cda.connection.handlers.GetTelemetryResourceHandler impor
 from programmingtheiot.cda.connection.handlers.UpdateActuatorResourceHandler import UpdateActuatorResourceHandler
 from programmingtheiot.cda.connection.handlers.GetSystemPerformanceResourceHandler import GetSystemPerformanceResourceHandler
 
-from programmingtheiot.cda.connection.CoapServerAdapter import CoapServerAdapter
+# from programmingtheiot.cda.connection.CoapServerAdapter import CoapServerAdapter
 
 class CoapServerAdapter():
 	"""
@@ -55,7 +57,36 @@ class CoapServerAdapter():
 		logging.info(f"CoAP server configured for host and port: {self.serverUri}")
 		
 	def addResource(self, resourcePath: ResourceNameEnum = None, endName: str = None, resource = None):
-		pass
+		if resourcePath and resource:
+			uriPath = resourcePath.value
+			
+			if endName:
+				uriPath = uriPath + '/' + endName
+				resource.name = endName
+				
+			trimmedUriPath   = uriPath.strip("/")
+			resourceList     = trimmedUriPath.split("/")
+			resourceTree     = None
+			registrationPath = ""
+			generationCount  = 0
+			
+			for resourceName in resourceList:
+				generationCount = generationCount + 1
+				registrationPath = registrationPath + "/" + resourceName
+				
+				try:
+					resourceTree = self.coapServer.root[registrationPath]
+				except KeyError:
+					resourceTree = None
+					
+			if not resourceTree:
+				if len(resourceList) != generationCount:
+					return None
+				
+				resource.path = registrationPath
+				self.coapServer.root[registrationPath] = resource
+		else:
+			logging.warning("No resource provided for path: " + str(resourcePath.value))
 				
 	def startServer(self):
 		if self.coapServer:
@@ -99,3 +130,30 @@ class CoapServerAdapter():
 		except Exception as e:
 			traceback.print_exception(type(e), e, e.__traceback__)
 			logging.warning("Failed to run server.")
+
+	def _initServer(self):
+		try:
+			self.coapServer = CoAP(server_address = (self.host, self.port))
+			
+			self.addResource( \
+				resourcePath = ResourceNameEnum.CDA_ACTUATOR_CMD_RESOURCE, \
+				endName = ConfigConst.HUMIDIFIER_ACTUATOR_NAME, \
+				resource = UpdateActuatorResourceHandler(dataMsgListener = self.dataMsgListener))
+				
+			# TODO: add other actuator resource handlers (for HVAC, etc.)
+			
+			sysPerfDataListener = GetSystemPerformanceResourceHandler()
+			
+			self.addResource( \
+				resourcePath = ResourceNameEnum.CDA_SYSTEM_PERF_MSG_RESOURCE, \
+				resource = sysPerfDataListener)
+			
+			# TODO: add other telemetry resource handlers (for SensorData)
+			
+			# TODO: register the callbacks with the data message listener instance
+			
+			logging.info("Created CoAP server with default resources.")
+			
+		except Exception as e:
+			traceback.print_exception(type(e), e, e.__traceback__)
+			logging.warning("Failed to create CoAP server.")

@@ -17,6 +17,8 @@ from coapthon.resources.resource import Resource
 
 import programmingtheiot.common.ConfigConst as ConfigConst
 
+from programmingtheiot.common.IDataMessageListener import IDataMessageListener
+
 from programmingtheiot.common.ConfigUtil import ConfigUtil
 from programmingtheiot.common.ITelemetryDataListener import ITelemetryDataListener
 from programmingtheiot.common.ISystemPerformanceDataListener import ISystemPerformanceDataListener
