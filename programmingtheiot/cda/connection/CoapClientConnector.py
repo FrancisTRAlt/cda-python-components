@@ -104,7 +104,21 @@ class CoapClientConnector(IRequestResponseClient):
 		pass
 
 	def sendPutRequest(self, resource: ResourceNameEnum = None, name: str = None, enableCON: bool = False, payload: str = None, timeout: int = IRequestResponseClient.DEFAULT_TIMEOUT) -> bool:
-		pass
+		if resource or name:
+			resourcePath = self._createResourcePath(resource, name)
+			
+			logging.info(f"Issuing PUT with path: {resourcePath}")
+			
+			request = self.coapClient.mk_request(defines.Codes.PUT, path = resourcePath)
+			request.token = generate_random_token(2)
+			request.payload = payload
+			
+			if not enableCON:
+				request.type = defines.Types["NON"]
+						
+			self.coapClient.send_request(request = request, callback = self._onPutResponse, timeout = timeout)
+		else:
+			logging.warning("Can't test PUT - no path or path list provided.")
 
 	def setDataMessageListener(self, listener: IDataMessageListener = None) -> bool:
 		if listener:
@@ -183,3 +197,10 @@ class CoapClientConnector(IRequestResponseClient):
 			return
 		
 		logging.info(f"DISCOVERY response received: {response.payload}")
+	
+	def _onPutResponse(self, response):
+		if not response:
+			logging.warning("PUT response invalid. Ignoring.")
+			return
+		
+		logging.info(f"PUT response received: {response.payload}")
