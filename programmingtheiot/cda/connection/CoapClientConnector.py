@@ -80,7 +80,20 @@ class CoapClientConnector(IRequestResponseClient):
 		self.coapClient.send_request(request = request, timeout = timeout, callback = self._onDiscoveryResponse)
 
 	def sendDeleteRequest(self, resource: ResourceNameEnum = None, name: str = None, enableCON: bool = False, timeout: int = IRequestResponseClient.DEFAULT_TIMEOUT) -> bool:
-		pass
+		if resource or name:
+			resourcePath = self._createResourcePath(resource, name)
+			
+			logging.info(f"Issuing DELETE with path: {resourcePath}")
+			
+			request = self.coapClient.mk_request(defines.Codes.DELETE, path = resourcePath)
+			request.token = generate_random_token(2)
+			
+			if not enableCON:
+				request.type = defines.Types["NON"]
+				
+			self.coapClient.send_request(request = request, callback = self._onDeleteResponse, timeout = timeout)
+		else:
+			logging.warning("Can't test DELETE - no path or path list provided.")
 
 	def sendGetRequest(self, resource: ResourceNameEnum = None, name: str = None, enableCON: bool = False, timeout: int = IRequestResponseClient.DEFAULT_TIMEOUT) -> bool:
 		if resource or name:
@@ -227,3 +240,10 @@ class CoapClientConnector(IRequestResponseClient):
 			return
 		
 		logging.info(f"POST response received: {response.payload}")
+
+	def _onDeleteResponse(self, response):
+		if not response:
+			logging.warning("DELETE response invalid. Ignoring.")
+			return
+		
+		logging.info(f"DELETE response received: {response.payload}")
