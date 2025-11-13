@@ -85,15 +85,15 @@ class DeviceDataManager(IDataMessageListener):
 		"""
 		pass
 	
-	def handleActuatorCommandMessage(self, data: ActuatorData) -> bool:
-		"""
-		This callback method will be invoked by the connection that's handling
-		an incoming ActuatorData command message.
-		
-		@param data The incoming ActuatorData command message.
-		@return boolean
-		"""
-		pass
+	def handleActuatorCommandMessage(self, data: ActuatorData) -> ActuatorData:
+		if data:
+			logging.info("Processing actuator command message.")
+			
+			# TODO: add further validation before sending the command
+			return self.actuatorAdapterMgr.sendActuatorCommand(data)
+		else:
+			logging.warning("Received invalid ActuatorData command message. Ignoring.")
+			return None
 	
 	def handleActuatorCommandResponse(self, data: ActuatorData) -> bool:
 		"""
