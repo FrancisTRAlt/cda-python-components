@@ -21,6 +21,8 @@ from programmingtheiot.common.ResourceNameEnum import ResourceNameEnum
 
 from programmingtheiot.cda.connection.IPubSubClient import IPubSubClient
 
+import ssl
+
 class MqttClientConnector(IPubSubClient):
 	"""
 	Shell representation of class for student implementation.
@@ -30,6 +32,14 @@ class MqttClientConnector(IPubSubClient):
 	def __init__(self, clientID: str = None):
 		self.config = ConfigUtil()
 		self.dataMsgListener = None
+
+		self.enableEncryption = \
+			self.config.getBoolean( \
+				ConfigConst.MQTT_GATEWAY_SERVICE, ConfigConst.ENABLE_CRYPT_KEY)
+
+		self.pemFileName = \
+			self.config.getProperty( \
+				ConfigConst.MQTT_GATEWAY_SERVICE, ConfigConst.CERT_FILE_KEY)
 		
 		self.host = \
 			self.config.getProperty( \
@@ -82,6 +92,23 @@ class MqttClientConnector(IPubSubClient):
 			# TODO: make clean_session configurable
 			self.mqttClient = mqttClient.Client(client_id = self.clientID, clean_session = True)
 			
+			try:
+				if self.enableEncryption:
+					logging.info("Enabling TLS encryption...")
+					
+					self.port = \
+						self.config.getInteger( \
+							ConfigConst.MQTT_GATEWAY_SERVICE, ConfigConst.SECURE_PORT_KEY, ConfigConst.DEFAULT_MQTT_SECURE_PORT)
+					
+					# IMPORTANT NOTE: Check your Python version for the version
+					# of TLS supported in the `ssl` module. It may need to be
+					# changed from what is indicated below.
+					# 
+					# see https://docs.python.org/3/library/ssl.html for more options.
+					self.mqttClient.tls_set(self.pemFileName, tls_version = ssl.PROTOCOL_TLS_CLIENT)
+			except:
+				logging.warning("Failed to enable TLS encryption. Using unencrypted connection.")
+
 			self.mqttClient.on_connect = self.onConnect
 			self.mqttClient.on_disconnect = self.onDisconnect
 			self.mqttClient.on_message = self.onMessage
