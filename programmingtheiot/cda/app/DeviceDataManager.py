@@ -44,6 +44,10 @@ class DeviceDataManager(IDataMessageListener):
 		# if self.enableMqttClient:
 		# 	self.mqttClient = MqttClientConnector()
 		# 	self.mqttClient.setDataMessageListener(self)
+
+		if self.enableMqttClient:
+			self.mqttClient = MqttClientConnector()
+			self.mqttClient.setDataMessageListener(self)
 		self.enableCoapServer = \
 			self.configUtil.getBoolean( \
 				section = ConfigConst.CONSTRAINED_DEVICE, key = ConfigConst.ENABLE_COAP_SERVER_KEY)
