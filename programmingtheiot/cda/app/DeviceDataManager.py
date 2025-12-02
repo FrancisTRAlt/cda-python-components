@@ -41,6 +41,15 @@ class DeviceDataManager(IDataMessageListener):
 	"""
 	
 	def __init__(self):
+		self.enableMqttClient = \
+		self.configUtil.getBoolean( \
+		section = ConfigConst.CONSTRAINED_DEVICE, key = ConfigConst.ENABLE_MQTT_CLIENT_KEY)
+		
+		self.mqttClient = None
+
+		if self.enableMqttClient:
+			self.mqttClient = MqttClientConnector()
+			self.mqttClient.setDataMessageListener(self)
 		self.configUtil = ConfigUtil()
 		
 		self.enableSystemPerf   = \
@@ -181,6 +190,14 @@ class DeviceDataManager(IDataMessageListener):
 		pass
 			
 	def startManager(self):
+		if self.mqttClient:
+			self.mqttClient.connectClient()
+			self.mqttClient.subscribeToTopic(ResourceNameEnum.CDA_ACTUATOR_CMD_RESOURCE, callback = None, qos = ConfigConst.DEFAULT_QOS)
+		
+	def stopManager(self):
+		if self.mqttClient:
+			self.mqttClient.unsubscribeFromTopic(ResourceNameEnum.CDA_ACTUATOR_CMD_RESOURCE)
+			self.mqttClient.disconnectClient()
 		logging.info("Starting DeviceDataManager...")
 		
 		if self.sysPerfMgr:
